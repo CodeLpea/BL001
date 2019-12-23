@@ -20,6 +20,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -41,6 +42,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
 
 /**
  * Activity for scanning and displaying available Bluetooth LE devices.
@@ -153,11 +156,11 @@ public class DeviceScanActivity extends ListActivity {
 
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
-        final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
+        final Device device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
         final Intent intent = new Intent(this, BleSppActivity.class);
-        intent.putExtra(BleSppActivity.EXTRAS_DEVICE_NAME, device.getName());
-        intent.putExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
+        intent.putExtra(BleSppActivity.EXTRAS_DEVICE_NAME, device.device.getName());
+        intent.putExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS, device.device.getAddress());
         if (mScanning) {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
             mScanning = false;
@@ -186,86 +189,46 @@ public class DeviceScanActivity extends ListActivity {
         invalidateOptionsMenu();
     }
 
-//    private void scanLeDevice(final boolean enable) {
-//        if (enable) {
-//            // Stops scanning after a pre-defined scan period.
-//            mHandler.postDelayed(new Runnable() {
-//                @Override
-//                public void run() {
-//                    mScanning = false;
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                        BluetoothLeScanner scanner = mBluetoothAdapter.getBluetoothLeScanner();
-//                        scanner.stopScan(leCallback);
-//                    }
-//                    else {
-//                        mBluetoothAdapter.stopLeScan(mLeScanCallback);
-//                    }
-//                    //  mBluetoothAdapter.stopLeScan(mLeScanCallback);
-//                    invalidateOptionsMenu();
-//                }
-//            }, SCAN_PERIOD);
-//
-//            mScanning = true;
-//
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                BluetoothLeScanner scanner = mBluetoothAdapter.getBluetoothLeScanner();
-//                scanner.stopScan(leCallback);
-//            }
-//            else{
-//                mBluetoothAdapter.startLeScan(mLeScanCallback);
-//            }
-//            mBluetoothAdapter.startLeScan(mLeScanCallback);
-//
-//        } else {
-//            mScanning = false;
-//            //       mBluetoothAdapter.stopLeScan(mLeScanCallback);
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                BluetoothLeScanner scanner = mBluetoothAdapter.getBluetoothLeScanner();
-//                scanner.stopScan(leCallback);
-//            }
-//            else{
-//                mBluetoothAdapter.startLeScan(mLeScanCallback);
-//            }
-//        }
-//        invalidateOptionsMenu();
-//    }
-//    @SuppressLint("NewApi")
-//    private ScanCallback leCallback = new ScanCallback() {
-//        @Override
-//        public void onScanResult(int callbackType, ScanResult result) {
-//            super.onScanResult(callbackType, result);
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//                BluetoothDevice device = result.getDevice();
-//                mLeDeviceListAdapter.addDevice(device);
-//                mLeDeviceListAdapter.notifyDataSetChanged();
-//            }
-//        }
-//
-//        @Override
-//        public void onScanFailed(int errorCode) {
-//            super.onScanFailed(errorCode);
-//
-//        }
-//    };
+
+    /**
+     *排序
+     * */
+    private void SortList(ArrayList<Device> list) {
+        list.sort(new Comparator<Device>() {
+            @Override
+            public int compare(Device o1, Device o2) {
+                //rssi为负数大的在前面
+                int i = o1.rssi > o2.rssi ? -1 : 1;
+                return i;
+            }
+        });
+    }
 
     // Adapter for holding devices found through scanning.
     private class LeDeviceListAdapter extends BaseAdapter {
-        private ArrayList<BluetoothDevice> mLeDevices;
+        private ArrayList<Device> mLeDevices;
         private LayoutInflater mInflator;
 
         public LeDeviceListAdapter() {
             super();
-            mLeDevices = new ArrayList<BluetoothDevice>();
+            mLeDevices = new ArrayList<Device>();
             mInflator = DeviceScanActivity.this.getLayoutInflater();
         }
 
-        public void addDevice(BluetoothDevice device) {
-            if(!mLeDevices.contains(device)) {
-                mLeDevices.add(device);
+        public void addDevice(Device device) {
+            for (int i = 0; i < mLeDevices.size(); i++) {
+                //如果已经存在相同的地址，就返回
+                if (mLeDevices.get(i).device.getAddress().equals(device.device.getAddress())) {
+                    return;
+                }
             }
+            mLeDevices.add(device);
+            SortList(mLeDevices);
+            mLeDeviceListAdapter.notifyDataSetChanged();
         }
 
-        public BluetoothDevice getDevice(int position) {
+
+        public Device getDevice(int position) {
             return mLeDevices.get(position);
         }
 
@@ -297,18 +260,20 @@ public class DeviceScanActivity extends ListActivity {
                 viewHolder = new ViewHolder();
                 viewHolder.deviceAddress = (TextView) view.findViewById(R.id.device_address);
                 viewHolder.deviceName = (TextView) view.findViewById(R.id.device_name);
+                viewHolder.deviceRssi = (TextView) view.findViewById(R.id.device_rssi);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder) view.getTag();
             }
 
-            BluetoothDevice device = mLeDevices.get(i);
-            final String deviceName = device.getName();
+            Device device = mLeDevices.get(i);
+            final String deviceName = device.device.getName();
             if (deviceName != null && deviceName.length() > 0)
                 viewHolder.deviceName.setText(deviceName);
             else
                 viewHolder.deviceName.setText(R.string.unknown_device);
-            viewHolder.deviceAddress.setText(device.getAddress());
+            viewHolder.deviceAddress.setText(device.device.getAddress());
+            viewHolder.deviceRssi.setText(String.valueOf(device.rssi));
 
             return view;
         }
@@ -320,32 +285,37 @@ public class DeviceScanActivity extends ListActivity {
 
                 @Override
                 public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mLeDeviceListAdapter.addDevice(device);
-                            mLeDeviceListAdapter.notifyDataSetChanged();
-                        }
-                    });
+                    mLeDeviceListAdapter.addDevice(new Device(device, rssi));
                 }
             };
+
+    private class Device {
+        public Device(BluetoothDevice device, int rssi) {
+            this.device = device;
+            this.rssi = rssi;
+        }
+
+        private BluetoothDevice device;
+        private int rssi;
+    }
 
     static class ViewHolder {
         TextView deviceName;
         TextView deviceAddress;
+        TextView deviceRssi;
     }
 
     private void mayRequestLocation() {
         if (Build.VERSION.SDK_INT >= 23) {
             int checkCallPhonePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
-            if(checkCallPhonePermission != PackageManager.PERMISSION_GRANTED){
+            if (checkCallPhonePermission != PackageManager.PERMISSION_GRANTED) {
                 //判断是否需要 向用户解释，为什么要申请该权限
-                if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION))
-                    Toast.makeText(this,R.string.ble_need_location, Toast.LENGTH_LONG).show();
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_COARSE_LOCATION))
+                    Toast.makeText(this, R.string.ble_need_location, Toast.LENGTH_LONG).show();
 
-                ActivityCompat.requestPermissions(this ,new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},1);
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
                 return;
-            }else{
+            } else {
 
             }
         } else {
