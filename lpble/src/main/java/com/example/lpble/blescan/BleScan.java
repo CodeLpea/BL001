@@ -60,23 +60,22 @@ public class BleScan implements IBleScan {
     }
 
     private void checkPermistion() {
-        //请求定位权限
-        if (Build.VERSION.SDK_INT >= 23) {
-            BlePermissionActivity.request(context, new BlePermissionActivity.PermistionCallBack() {
-                @Override
-                public void onSuccuss() {
-                    /*开始搜索，准备计时*/
-                    startScan();
-                    Log.e(TAG, "同意了权限申请: ");
-                }
+        //请求定位和蓝牙权限，以及打开蓝牙和定位开关
+        BlePermissionActivity.request(context, new BlePermissionActivity.PermistionCallBack() {
+            @Override
+            public void onSuccuss() {
+                /*开始搜索，准备计时*/
+                startScan();
+                Log.e(TAG, "同意了权限申请: ");
+            }
 
-                @Override
-                public void onFaild() {
-                    Log.e(TAG, "拒绝了权限申请: ");
-                }
+            @Override
+            public void onFaild() {
+                Log.e(TAG, "拒绝了权限申请: ");
+            }
 
-            });
-        }
+        });
+
 
     }
 

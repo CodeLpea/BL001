@@ -85,7 +85,7 @@ public class lpDeviceScanActivity extends ListActivity {
     protected void onListItemClick(ListView l, View v, int position, long id) {
         final LpBleDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
-        final Intent intent = new Intent(this, BleSppActivity.class);
+        final Intent intent = new Intent(this, LpBleSppActivity.class);
         intent.putExtra(BleSppActivity.EXTRAS_DEVICE_NAME, device.getDevice().getName());
         intent.putExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS, device.getDevice().getAddress());
         LpBle.getInstance().ScanBle().interrupt();
