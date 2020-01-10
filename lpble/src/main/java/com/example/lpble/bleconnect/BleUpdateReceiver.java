@@ -13,7 +13,7 @@ public class BleUpdateReceiver extends BroadcastReceiver {
     private IBleConnect.LpBleInfoListenner lpBleInfoListenner;
     private IBleConnect.BleDataType bleDataType;
     //当前蓝牙状态，默认为正在连接中
-    private CurrentState state= CurrentState.Connectting;
+    private static CurrentState state= CurrentState.Connectting;
     private enum CurrentState{
         //已经连接
         Connect,
@@ -41,27 +41,28 @@ public class BleUpdateReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         final String action = intent.getAction();
-        if (lpBleInfoListenner == null) {
-            //如果没有设置监听，则直接返回
-            return;
-        }
         if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
             //当蓝牙连接状态发生变化时，会被调用。
         } else if (BluetoothLeService.ACTION_GATT_CONNECTTING.equals(action)) {
             //调用Conncet方法，正在连接中。
             state= CurrentState.Connectting;
+            backToCureentState();
         }
         else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
             //当断开连接的时候再次请求当前现有的连接，当重新寻找到GATT的时候，就可以再次自动连接。
             state= CurrentState.DisConnect;
-            lpBleInfoListenner.onDisConnect("已经断开连接");
+            backToCureentState();
         } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
             //特征值找到才代表连接成功
             state= CurrentState.Connect;
-            lpBleInfoListenner.onConnect("连接成功");
+            backToCureentState();
 
         } else if (BluetoothLeService.ACTION_GATT_SERVICES_NO_DISCOVERED.equals(action)) {
             state= CurrentState.DisConnect;
+            if (lpBleInfoListenner == null) {
+                //如果没有设置监听，则直接返回
+                return;
+            }
             lpBleInfoListenner.onDisConnect("连接失败，不是BLE-SPS设备");
 
         }
@@ -99,15 +100,22 @@ public class BleUpdateReceiver extends BroadcastReceiver {
      * 方便获取当前状态
      * */
     private void backToCureentState() {
+        if (lpBleInfoListenner == null) {
+            //如果没有设置监听，则直接返回
+            return;
+        }
         switch (state){
             case Connect:
                 lpBleInfoListenner.onConnect("已经连接");
+                Log.e(TAG, "backToCureentState: 已经连接" );
                 break;
             case DisConnect:
                 lpBleInfoListenner.onDisConnect("连接断开");
+                Log.e(TAG, "backToCureentState: 连接断开" );
                 break;
             case Connectting:
                 lpBleInfoListenner.onConnectting("连接中");
+                Log.e(TAG, "backToCureentState: 连接中" );
                 break;
         }
     }
