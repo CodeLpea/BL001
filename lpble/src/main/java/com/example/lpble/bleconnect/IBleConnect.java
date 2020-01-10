@@ -16,6 +16,8 @@ public interface IBleConnect {
 
     //回调监听
     public interface LpBleInfoListenner{
+        //连接中
+        void onConnectting(String info);
         //连接成功回调
         void onConnect(String info);
         //连接断开回调

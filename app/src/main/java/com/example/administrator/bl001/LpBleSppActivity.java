@@ -149,13 +149,19 @@ public class LpBleSppActivity extends Activity implements View.OnClickListener {
                 .setDataType(IBleConnect.BleDataType.ASCII)
                 .setBleProgessListenner(new IBleConnect.LpBleInfoListenner() {
                     @Override
+                    public void onConnectting(String info) {
+                        mDataRecvText.setText(info.toString());
+                    }
+                    @Override
                     public void onConnect(String info) {
                         Log.e(TAG, "onConnect: " + info);
+                        mDataRecvText.setText(info.toString());
                     }
 
                     @Override
                     public void onDisConnect(String info) {
                         Log.e(TAG, "onDisConnect: " + info);
+                        mDataRecvText.setText(info.toString());
                     }
 
                     @Override
