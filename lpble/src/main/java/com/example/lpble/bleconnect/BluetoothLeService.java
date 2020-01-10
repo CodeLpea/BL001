@@ -315,6 +315,7 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.disconnect();
+        broadcastUpdate(ACTION_GATT_DISCONNECTED);
     }
 
     /**
@@ -326,6 +327,7 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.close();
+        broadcastUpdate(ACTION_GATT_DISCONNECTED);
         mBluetoothGatt = null;
     }
 
@@ -389,5 +391,11 @@ public class BluetoothLeService extends Service {
         if (mBluetoothGatt == null) return null;
 
         return mBluetoothGatt.getServices();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        broadcastUpdate(ACTION_GATT_DISCONNECTED);
     }
 }
